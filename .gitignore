@@ -1,0 +1,6 @@
+
+# ignore gzip file
+*.gz
+
+# ignore python binary file
+*.pyc
