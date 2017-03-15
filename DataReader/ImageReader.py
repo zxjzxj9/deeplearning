@@ -44,7 +44,8 @@ class ImageReader(object):
         if tmp == "": raise StopIteration
         #image = np.array(struct.unpack("{0}B", tmp), dtype=np.byte). \
         #                reshape((self.nrows, self.ncols))
-        image = np.array(struct.unpack("{0}b".format(self.nrows*self.ncols), tmp), dtype=np.uint8)
+        # notice we shall normalize the input
+        image = (np.array(struct.unpack("{0}b".format(self.nrows*self.ncols), tmp), dtype=np.uint8) - 128) / 256.0
         return image
 
     def to_tensor(self):
