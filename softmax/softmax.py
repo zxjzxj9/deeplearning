@@ -26,7 +26,7 @@ class TFSoftMax(object):
         y_ = tf.placeholder(tf.float32, [None, bsize])
 
         #cross_entropy = tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(tf.clip_by_value(y, 1e-10, 1.0)), axis=[1]))
-        cross_entropy = tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(y + 1e-10), axis=[1]))
+        cross_entropy = tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(y), axis=[0]))
         minimizer = tf.train.GradientDescentOptimizer(0.5).minimize(cross_entropy)
 
         sess = tf.InteractiveSession()
@@ -39,9 +39,11 @@ class TFSoftMax(object):
             #print np.max(xs),np.min(xs),np.max(ys),np.min(ys)
             #print xs.shape, ys.shape
             sess.run(minimizer, feed_dict = {x: xs, y_: ys})                            
+            print(sess.run(cross_entropy, feed_dict = {x: xs, y_: ys}))
             #print(sess.run(tf.log(y), feed_dict = {x: xs, y_: ys}))
             #print(sess.run(W, feed_dict = {x: xs, y_: ys}))
-            print(sess.run(cross_entropy, feed_dict = {x: xs, y_: ys}))
+            #ydata = sess.run(y, feed_dict = {x: xs, y_: ys})
+            #print np.min(ydata), np.max(ydata)
             #if i > 1: break
             #break
 
