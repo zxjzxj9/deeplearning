@@ -41,9 +41,9 @@ class LabelReader(object):
     def __next__(self):
         tmp = self.fdata.read(1)
         if tmp == "": raise StopIteration
-        idx = struct.unpack("b", tmp)[0]
-        ret = np.zeros(10, dtype=np.int32)
-        ret[idx] = 1
+        idx = struct.unpack("B", tmp)[0]
+        ret = np.zeros(10, dtype=np.float32)
+        ret[idx] = 1.000
         return ret
 
     def to_tensor(self):

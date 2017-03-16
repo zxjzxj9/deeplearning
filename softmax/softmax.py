@@ -26,25 +26,26 @@ class TFSoftMax(object):
         y_ = tf.placeholder(tf.float32, [None, bsize])
 
         #cross_entropy = tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(tf.clip_by_value(y, 1e-10, 1.0)), axis=[1]))
-        cross_entropy = tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(y), axis=[0]))
-        minimizer = tf.train.GradientDescentOptimizer(0.5).minimize(cross_entropy)
+        cross_entropy = tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(y), axis=[1]))
+        minimizer = tf.train.GradientDescentOptimizer(0.05).minimize(cross_entropy)
 
         sess = tf.InteractiveSession()
-        tf.global_variables_initializer().run()
-        #tf.initialize_all_variables().run()
+        init = tf.global_variables_initializer()
+        sess.run(init)
+        #tf.initialize_all_variables()
 
-        for _ in range(1000):
+        for i in range(1000):
             select = np.random.randint(0, 60000, batchsize)
             xs, ys = self.data[select, :], self.label[select, :]
             #print np.max(xs),np.min(xs),np.max(ys),np.min(ys)
             #print xs.shape, ys.shape
+            ydata = sess.run(y, feed_dict = {x: xs, y_: ys})
             sess.run(minimizer, feed_dict = {x: xs, y_: ys})                            
             print(sess.run(cross_entropy, feed_dict = {x: xs, y_: ys}))
             #print(sess.run(tf.log(y), feed_dict = {x: xs, y_: ys}))
             #print(sess.run(W, feed_dict = {x: xs, y_: ys}))
-            #ydata = sess.run(y, feed_dict = {x: xs, y_: ys})
-            #print np.min(ydata), np.max(ydata)
-            #if i > 1: break
+            print np.min(ydata), np.max(ydata)
+            if i > 1: break
             #break
 
     def test(self, test_data, test_label):
