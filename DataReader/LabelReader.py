@@ -47,7 +47,7 @@ class LabelReader(object):
         return ret
 
     def to_tensor(self):
-        return np.array(list(self))
+        return np.array(list(self)).astype(np.float32)
 
     def __del__(self):
         self.fdata.close()

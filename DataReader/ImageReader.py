@@ -45,11 +45,12 @@ class ImageReader(object):
         #image = np.array(struct.unpack("{0}B", tmp), dtype=np.byte). \
         #                reshape((self.nrows, self.ncols))
         # notice we shall normalize the input
-        image = (np.array(struct.unpack("{0}b".format(self.nrows*self.ncols), tmp), dtype=np.uint8) - 128) / 256.0
+        image = (np.array(struct.unpack("{0}B".format(self.nrows*self.ncols), tmp), dtype=np.float32) - 128.0) / 128.0
+        #print np.max(image), np.min(image)
         return image
 
     def to_tensor(self):
-        return np.array(list(self))
+        return np.array(list(self)).astype(np.float32)
 
     def __del__(self):
         self.fdata.close()
