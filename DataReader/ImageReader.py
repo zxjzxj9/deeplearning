@@ -45,7 +45,7 @@ class ImageReader(object):
         #image = np.array(struct.unpack("{0}B", tmp), dtype=np.byte). \
         #                reshape((self.nrows, self.ncols))
         # notice we shall normalize the input
-        image = (np.array(struct.unpack("{0}B".format(self.nrows*self.ncols), tmp), dtype=np.float32) - 128.0) / 128.0
+        image = np.array(struct.unpack("{0}B".format(self.nrows*self.ncols), tmp), dtype=np.float32) / 256.0
         #print np.max(image), np.min(image)
         return image
 

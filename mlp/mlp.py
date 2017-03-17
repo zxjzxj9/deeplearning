@@ -5,29 +5,41 @@ import tensorflow as tf
 import numpy as np
 import sys
 
-class TFSoftMax(object):
+class TFMLP(object):
 
     def __init__(self, train_data, train_label):
         self.data = train_data
         self.label = train_label
 
-    def train(self, batchsize = 100):
+    def train(self, batchsize = 100, hsize = 800):
 
+        # hsize is the hidden_layer size
         wsize = self.data.shape[1]
         bsize = self.label.shape[1]
 
+        W1 = tf.Variable(tf.random_normal((wsize, hsize), dtype=tf.float32))
+        b1 = tf.Variable(tf.random_normal((hsize, ), dtype=tf.float32))
+        W2 = tf.Variable(tf.random_normal((hsize, hsize), dtype=tf.float32))
+        b2 = tf.Variable(tf.random_normal((hsize, ), dtype=tf.float32))
+        W3 = tf.Variable(tf.random_normal((hsize, bsize), dtype=tf.float32))
+        b3 = tf.Variable(tf.random_normal((bsize, ), dtype=tf.float32))
+        #W = tf.Variable(tf.zeros((wsize, bsize), dtype=tf.float32), name="W")
         #W = tf.Variable(tf.zeros((wsize, bsize), dtype=tf.float32), name="W")
         #b = tf.Variable(tf.zeros((bsize,), dtype=tf.float32), name="b")
-        W = tf.Variable(np.random.randn(wsize, bsize).astype(np.float32))
-        b = tf.Variable(np.random.randn(bsize).astype(np.float32))
+        #W = tf.Variable(np.random.randn(wsize, bsize).astype(np.float32))
+        #b = tf.Variable(np.random.randn(bsize).astype(np.float32))
 
         x = tf.placeholder(tf.float32, [None, wsize])
-        y = tf.nn.softmax(tf.matmul(x, W) + b)
         y_ = tf.placeholder(tf.float32, [None, bsize])
+
+        layer1 = tf.sigmoid(tf.matmul(x, W1) + b1)
+        layer2 = tf.sigmoid(tf.matmul(layer1, W2) + b2)
+        y =  tf.nn.softmax(tf.matmul(layer2, W3) + b3)
 
         #cross_entropy = tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(tf.clip_by_value(y, 1e-10, 1.0)), axis=[1]))
         cross_entropy = tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(y), axis=[1]))
-        minimizer = tf.train.GradientDescentOptimizer(0.5).minimize(cross_entropy)
+        
+        minimizer = tf.train.GradientDescentOptimizer(0.1).minimize(cross_entropy)
 
         sess = tf.InteractiveSession()
         init = tf.global_variables_initializer()
@@ -38,21 +50,28 @@ class TFSoftMax(object):
         for i in range(10000):
             select = np.random.randint(0, 60000, batchsize)
             xs, ys = self.data[select, :], self.label[select, :]
+            
             #print np.max(xs),np.min(xs),np.max(ys),np.min(ys)
             #print xs.shape, ys.shape
-            ydata = sess.run(y, feed_dict = {x: xs, y_: ys})
+            #print(sess.run(W1, feed_dict = {x: xs, y_: ys}))
             sess.run(minimizer, feed_dict = {x: xs, y_: ys})                            
+            #ydata = sess.run(y, feed_dict = {x: xs, y_: ys})
+            #print(sess.run(layer1, feed_dict = {x: xs, y_: ys}))
+            #print(sess.run(layer2, feed_dict = {x: xs, y_: ys}))
+            #print(sess.run(y, feed_dict = {x: xs, y_: ys}))
             print(sess.run(cross_entropy, feed_dict = {x: xs, y_: ys}))
             #print(sess.run(tf.log(y), feed_dict = {x: xs, y_: ys}))
-            #print(sess.run(x, feed_dict = {x: xs, y_: ys}))
-            #print(sess.run(y_, feed_dict = {x: xs, y_: ys}))
             #print(sess.run(W, feed_dict = {x: xs, y_: ys}))
             #print np.min(ydata), np.max(ydata)
-            #if i > 1: break
+            #if i > 2: break
             #break
         saver.save(sess, "/tmp/model.ckpt")
-        self.W = W
-        self.b = b
+        self.W1 = W1
+        self.b1 = b1
+        self.W2 = W2
+        self.b2 = b2
+        self.W3 = W3
+        self.b3 = b3
 
     def test(self, test_data, test_label):
 
@@ -60,14 +79,13 @@ class TFSoftMax(object):
         wsize = self.data.shape[1]
         bsize = self.label.shape[1]
 
-        #W = tf.Variable(tf.zeros((wsize, bsize), dtype=tf.float32), name="W")
-        #b = tf.Variable(tf.zeros((bsize,), dtype=tf.float32), name="b")
-
         self.test_data = test_data
         self.test_label = test_label
         
         x = tf.placeholder(tf.float32, [None, wsize])
-        y = tf.nn.softmax(tf.matmul(x, self.W) + self.b)
+        layer1 = tf.sigmoid(tf.matmul(x, self.W1) + self.b1)
+        layer2 = tf.sigmoid(tf.matmul(layer1, self.W2) + self.b2)
+        y =  tf.nn.softmax(tf.matmul(layer2, self.W3) + self.b3)
         y_ = tf.placeholder(tf.float32, [None, bsize])
 
         sess = tf.InteractiveSession()
@@ -91,11 +109,10 @@ if __name__ == "__main__":
     ldata = DataReader.LabelReader("../dataset/train-labels-idx1-ubyte.gz").to_tensor()
     print tdata.shape
     print ldata.shape
-    tf_softmax = TFSoftMax(tdata, ldata)
-    tf_softmax.train()
-
+    tf_mlp = TFMLP(tdata, ldata)
+    tf_mlp.train()
 
     ttest = DataReader.ImageReader("../dataset/t10k-images-idx3-ubyte.gz").to_tensor()
     ltest = DataReader.LabelReader("../dataset/t10k-labels-idx1-ubyte.gz").to_tensor()
 
-    tf_softmax.test(ttest, ltest)
+    tf_mlp.test(ttest, ltest)
