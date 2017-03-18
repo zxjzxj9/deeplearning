@@ -11,7 +11,7 @@ class TFMLP(object):
         self.data = train_data
         self.label = train_label
 
-    def train(self, batchsize = 100, hsize = 800):
+    def train(self, batchsize = 100, hsize = 400):
 
         # hsize is the hidden_layer size
         wsize = self.data.shape[1]
@@ -32,39 +32,39 @@ class TFMLP(object):
         x = tf.placeholder(tf.float32, [None, wsize])
         y_ = tf.placeholder(tf.float32, [None, bsize])
 
-        layer1 = tf.sigmoid(tf.matmul(x, W1) + b1)
-        layer2 = tf.sigmoid(tf.matmul(layer1, W2) + b2)
-        y =  tf.nn.softmax(tf.matmul(layer2, W3) + b3)
+        layer1 = tf.nn.relu(tf.add(tf.matmul(x, W1), b1))
+        layer2 = tf.nn.relu(tf.add(tf.matmul(layer1, W2), b2))
+        y =  tf.nn.softmax(tf.add(tf.matmul(layer2, W3), b3))
 
-        #cross_entropy = tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(tf.clip_by_value(y, 1e-10, 1.0)), axis=[1]))
-        cross_entropy = tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(y), axis=[1]))
+        cross_entropy = tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(tf.clip_by_value(y, 1e-10, 1.0)), axis=[1]))
+        #cross_entropy = tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(y), axis=[1]))
         
-        minimizer = tf.train.GradientDescentOptimizer(0.1).minimize(cross_entropy)
+        minimizer = tf.train.AdamOptimizer(1e-3).minimize(cross_entropy)
 
         sess = tf.InteractiveSession()
         init = tf.global_variables_initializer()
         sess.run(init)
         #tf.initialize_all_variables()
-        
+       
+        self.batch = batchsize
         saver = tf.train.Saver()
-        for i in range(10000):
-            select = np.random.randint(0, 60000, batchsize)
-            xs, ys = self.data[select, :], self.label[select, :]
-            
-            #print np.max(xs),np.min(xs),np.max(ys),np.min(ys)
-            #print xs.shape, ys.shape
-            #print(sess.run(W1, feed_dict = {x: xs, y_: ys}))
-            sess.run(minimizer, feed_dict = {x: xs, y_: ys})                            
-            #ydata = sess.run(y, feed_dict = {x: xs, y_: ys})
-            #print(sess.run(layer1, feed_dict = {x: xs, y_: ys}))
-            #print(sess.run(layer2, feed_dict = {x: xs, y_: ys}))
-            #print(sess.run(y, feed_dict = {x: xs, y_: ys}))
-            print(sess.run(cross_entropy, feed_dict = {x: xs, y_: ys}))
-            #print(sess.run(tf.log(y), feed_dict = {x: xs, y_: ys}))
-            #print(sess.run(W, feed_dict = {x: xs, y_: ys}))
-            #print np.min(ydata), np.max(ydata)
-            #if i > 2: break
-            #break
+        for i in range(60):
+            print("Epoch %d" %i)
+            for xs, ys in self:
+                #print np.max(xs),np.min(xs),np.max(ys),np.min(ys)
+                #print xs.shape, ys.shape
+                #print(sess.run(W1, feed_dict = {x: xs, y_: ys}))
+                sess.run(minimizer, feed_dict = {x: xs, y_: ys})                            
+                #ydata = sess.run(y, feed_dict = {x: xs, y_: ys})
+                #print(sess.run(layer1, feed_dict = {x: xs, y_: ys}))
+                #print(sess.run(layer2, feed_dict = {x: xs, y_: ys}))
+                #print(sess.run(y, feed_dict = {x: xs, y_: ys}))
+            print(sess.run(cross_entropy, feed_dict = {x: self.data, y_: self.label}))
+                #print(sess.run(tf.log(y), feed_dict = {x: xs, y_: ys}))
+                #print(sess.run(W, feed_dict = {x: xs, y_: ys}))
+                #print np.min(ydata), np.max(ydata)
+                #if i > 2: break
+                #break
         saver.save(sess, "/tmp/model.ckpt")
         self.W1 = W1
         self.b1 = b1
@@ -99,6 +99,22 @@ class TFMLP(object):
 
         correct = sess.run(mean_same, feed_dict = {x: test_data, y_: test_label})
         print correct
+
+    def __iter__(self):
+        self.maxlen = self.data.shape[0]
+        self.index = np.arange(self.maxlen)
+        np.random.shuffle(self.index)
+        self.cnt = 0
+        return self
+
+    def __next__(self):
+        if self.cnt == self.maxlen: raise StopIteration
+        self.cnt += self.batch
+        return self.data[self.index[self.cnt - self.batch: self.cnt], :], \
+               self.label[self.index[self.cnt - self.batch: self.cnt], :]
+
+    def next(self):
+        return self.__next__()
 
 
 if __name__ == "__main__":
