@@ -52,5 +52,8 @@ class ImageReader(object):
     def to_tensor(self):
         return np.array(list(self)).astype(np.float32)
 
+    def to_tensor2d(self):
+        return np.array(map(lambda x: x.reshape(self.nrows, self.ncols), list(self))).astype(np.float32)
+
     def __del__(self):
         self.fdata.close()

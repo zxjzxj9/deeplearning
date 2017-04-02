@@ -32,14 +32,15 @@ class TFMLP(object):
         x = tf.placeholder(tf.float32, [None, wsize])
         y_ = tf.placeholder(tf.float32, [None, bsize])
 
-        layer1 = tf.nn.relu(tf.add(tf.matmul(x, W1), b1))
-        layer2 = tf.nn.relu(tf.add(tf.matmul(layer1, W2), b2))
+        layer1 = tf.nn.sigmoid(tf.add(tf.matmul(x, W1), b1))
+        layer2 = tf.nn.sigmoid(tf.add(tf.matmul(layer1, W2), b2))
         y =  tf.nn.softmax(tf.add(tf.matmul(layer2, W3), b3))
 
-        cross_entropy = tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(tf.clip_by_value(y, 1e-10, 1.0)), axis=[1]))
-        #cross_entropy = tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(y), axis=[1]))
+        #cross_entropy = tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(tf.clip_by_value(y, 1e-10, 1.0)), axis=[1]))
+        cross_entropy = tf.reduce_mean(-tf.reduce_sum(y_ * tf.log(y), axis=[1]))
+        #cross_entropy = tf.reduce_mean(tf.pow(y_ - y, 2))
         
-        minimizer = tf.train.AdamOptimizer(1e-3).minimize(cross_entropy)
+        minimizer = tf.train.AdamOptimizer(5e-3).minimize(cross_entropy)
 
         sess = tf.InteractiveSession()
         init = tf.global_variables_initializer()
