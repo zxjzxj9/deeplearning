@@ -2,7 +2,7 @@
 
 This is a tutorial of TensorFlow with following parts:
 
-- [ ] MNIST For ML Beginners
+- [x] MNIST For ML Beginners
 - [ ] Deep MNIST for Experts
 - [ ] TensorFlow Mechanics 101
 - [ ] tf.contrib.learn Quickstart
