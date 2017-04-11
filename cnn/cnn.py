@@ -77,7 +77,7 @@ class TFCNN(object):
         sess = tf.Session()
         sess.run(tf.global_variables_initializer())
 
-        for i in range(10):
+        for i in range(100):
             for xs, ys in self:
                 sess.run(train_step, feed_dict = {x: xs, y_: ys, keep_prob: 0.5}) 
             if i%10 == 0:
@@ -86,21 +86,21 @@ class TFCNN(object):
         self.accuracy = accuracy
         saver = tf.train.Saver()
         saver.save(sess, "/tmp/model.ckpt")
+        self.x = x
+        self.y_ = y_
+        self.keep_prob = keep_prob
         #print sess.run(accuracy)
 
     def test(self, test_data, test_label):
         hsize = self.data.shape[1]
         wsize = self.data.shape[2]
         bsize = self.label.shape[1]
-        print bsize
+        print bsize, test_data.dtype, test_label.dtype
 
         sess = tf.InteractiveSession()
         saver = tf.train.Saver()
         saver.restore(sess, "/tmp/model.ckpt")
-        keep_prob = tf.placeholder(tf.float32)
-        x = tf.placeholder(tf.float32, [None, hsize, wsize])
-        y_ = tf.placeholder(tf.float32, [None, bsize])
-        print sess.run(self.accuracy, feed_dict = {x: test_data, y_: test_label, keep_prob: 1.0})
+        print sess.run(self.accuracy, feed_dict = {self.x: test_data, self.y_: test_label, self.keep_prob: 1.0})
         
     def __iter__(self):
         self.maxlen = self.data.shape[0]
@@ -132,5 +132,6 @@ if __name__ == "__main__":
 
     ttest = DataReader.ImageReader("../dataset/t10k-images-idx3-ubyte.gz").to_tensor2d()
     ltest = DataReader.LabelReader("../dataset/t10k-labels-idx1-ubyte.gz").to_tensor()
-
+    print ttest.dtype
+    print ltest.dtype
     tf_mlp.test(ttest, ltest)

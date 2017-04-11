@@ -49,7 +49,7 @@ class TFMLP(object):
        
         self.batch = batchsize
         saver = tf.train.Saver()
-        for i in range(60):
+        for i in range(40):
             print("Epoch %d" %i)
             for xs, ys in self:
                 #print np.max(xs),np.min(xs),np.max(ys),np.min(ys)
