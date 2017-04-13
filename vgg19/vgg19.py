@@ -57,7 +57,7 @@ class Vgg19(object):
         b_conv42 = tf.Variable(tf.truncated_normal((512,), 0, 0.1), name = "b_cov42")
         layer12 = tf.nn.relu(tf.nn.conv(layer11, W_conv42, (1, 1, 1, 1), padding = "SAME") + b_conv42)
 
-        W_conv43 = tf.Variable(tf.truncated_normal((3, 3, 512, 512),  0, 0.1), name = "W_conv43"
+        W_conv43 = tf.Variable(tf.truncated_normal((3, 3, 512, 512),  0, 0.1), name = "W_conv43")
         b_conv43 = tf.Variable(tf.truncated_normal((512,), 0, 0.1), name = "b_cov43")
         layer13 = tf.nn.relu(tf.nn.conv(layer12, W_conv43, (1, 1, 1, 1), padding = "SAME") + b_conv43)
 
