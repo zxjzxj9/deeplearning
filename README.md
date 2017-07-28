@@ -4,10 +4,10 @@ This is a tutorial of TensorFlow with following parts:
 
 - [x] MNIST For ML Beginners
 - [x] Deep MNIST for Experts
-- [ ] TensorFlow Mechanics 101
-- [ ] tf.contrib.learn Quickstart
-- [ ] Building Input Functions with tf.contrib.learn
-- [ ] TensorBoard: Visualizing Learning
-- [ ] TensorBoard: Embedding Visualization
-- [ ] TensorBoard: Graph Visualization
-- [ ] Logging and Monitoring Basics with tf.contrib.learn
+- [x] TensorFlow Mechanics 101
+- [x] tf.contrib.learn Quickstart
+- [x] Building Input Functions with tf.contrib.learn
+- [x] TensorBoard: Visualizing Learning
+- [x] TensorBoard: Embedding Visualization
+- [x] TensorBoard: Graph Visualization
+- [x] Logging and Monitoring Basics with tf.contrib.learn
