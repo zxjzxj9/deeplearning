@@ -78,8 +78,14 @@ class TFCNN(object):
         sess.run(tf.global_variables_initializer())
 
         for i in range(100):
+            cnt = 0
             for xs, ys in self:
                 sess.run(train_step, feed_dict = {x: xs, y_: ys, keep_prob: 0.5}) 
+                sys.stdout.write("epoch %d, step %d\r" %(i,cnt))
+                sys.stdout.flush()
+                cnt += 1
+
+            print("")
             if i%10 == 0:
                 print sess.run(cross_entropy,  feed_dict = {x: xs, y_: ys, keep_prob: 1.0})
 
