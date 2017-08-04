@@ -14,5 +14,5 @@ This is a tutorial of TensorFlow with following parts:
 
 With several other models:
 1. GAN
-2. CGG
+2. VGG
 3. AutoEncoder
