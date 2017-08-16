@@ -67,7 +67,24 @@ class AutoEncoder(nn.Module):
                 data = Variable(data)
 
                 optimizer.zero_grad()
-                loss = criterion(self(data), data)
+
+                # Sparse Autoencoders, L2-norm, this is proved to be have nearly the same effect as original data
+                # L1-norm will produce worse models
+                # tanh will produce worse models, may be this indicates the figure need normalization
+                # loss = criterion(self(data), data) + 0.0001*(F.sigmoid(self.linear1(data))**2).sum()
+                # another loss function will be CAE (contractive autoencoder)
+
+                hidden = F.sigmoid(self.linear1(data))
+                #gradients = torch.autograd.grad(inputs = data, outputs = hidden, retain_graph = True, create_graph = True)
+                
+                # PyTorch evaluating Jacobian Matrix is extremely complicated!
+                # Thanks to this blog:
+                # https://wiseodd.github.io/techblog/2016/12/05/contractive-autoencoder/
+
+                hw = hidden*(1.0 - hidden)
+                # CAE is still not enough, only give ~81%, compared to the original data ~86%
+                loss = criterion(self(data), data) + 0.01*(hw * (self.linear1.weight**2).sum(dim = 1)).sum()
+
                 loss.backward()
                 optimizer.step()
                 sys.stdout.write("In epoch %d, total loss %.6f\r" %(epoch, loss.data.cpu().numpy()))
@@ -125,14 +142,14 @@ if __name__ == "__main__":
     saen = StackedAutoEncoder(28*28, (400, ), tdata)
     ret = saen.fit_transform(tdata)
 
-    import matplotlib.pyplot as plt
-    graphs, axes = plt.subplots(nrows=5, ncols=5)
-    axes = axes.flatten()
+    #import matplotlib.pyplot as plt
+    #graphs, axes = plt.subplots(nrows=5, ncols=5)
+    #axes = axes.flatten()
 
-    for t in range(25):
-        axes[t].imshow(ret[t,:].reshape((28,28)),  cmap='gray')
-        graphs.tight_layout()
-    plt.show()
+    #for t in range(25):
+    #    axes[t].imshow(ret[t,:].reshape((28,28)),  cmap='gray')
+    #    graphs.tight_layout()
+    #plt.show()
     
     print("Training Model1 ...")
     model1 = MultiOutputClassifier(sklearn.ensemble.RandomForestClassifier(10))
