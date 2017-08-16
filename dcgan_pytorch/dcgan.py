@@ -127,7 +127,7 @@ if __name__ == "__main__":
     optimizer_g = torch.optim.Adam( dcg.parameters(), lr = 2e-4, betas = (0.5, 0.999))
     optimizer_d = torch.optim.Adam( dcd.parameters(), lr = 2e-4, betas = (0.5, 0.999))
     
-    for epoch in range(100):
+    for epoch in range(10):
         dataloader = DataLoader(d, batch_size=BATCH_SIZE, shuffle=True, num_workers=4, pin_memory =True)
         for batch in dataloader:
 
@@ -135,22 +135,24 @@ if __name__ == "__main__":
             dis_real = dcd(Variable(batch))
             dis_fake = dcd(gen)
 
-            #print(type(dis_real), type(dis_fake))
-            optimizer_g.zero_grad()
-            # Loss for Generators
-            loss1 = nn.functional.binary_cross_entropy(dis_fake, Variable(torch.ones(dis_fake.size()).cuda() ) )
-            loss_g = loss1
-            loss_g.backward(retain_variables=True)
-            optimizer_g.step()
 
             optimizer_d.zero_grad()
             # Loss for Discriminators
             loss2 = nn.functional.binary_cross_entropy(dis_fake, Variable(torch.zeros(dis_fake.size()).cuda()) )
             loss3 = nn.functional.binary_cross_entropy(dis_real, Variable(torch.ones(dis_fake.size() ).cuda()) )
             loss_d = 0.5*(loss3 + loss2)
-            loss_d.backward()
+            loss_d.backward(retain_variables=True)
             optimizer_d.step()
 
+            #print(type(dis_real), type(dis_fake))
+            optimizer_g.zero_grad()
+            # Loss for Generators
+            loss1 = nn.functional.binary_cross_entropy(dis_fake, Variable(torch.ones(dis_fake.size()).cuda() ) )
+            loss_g = loss1
+            loss_g.backward()
+            optimizer_g.step()
+
+            #optimizer_d.zero_grad()
             sys.stdout.write("In epoch %d, Generator Loss %.3f, Discriminator Loss %.3f\r" \
                                %(epoch, loss_g.cpu().data.numpy()[0], loss_d.cpu().data.numpy()[0]))
 
