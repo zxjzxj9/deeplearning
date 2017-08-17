@@ -92,6 +92,15 @@ class DCGenerator(torch.nn.Module):
         deconv_layer3 = tanh(self.deconv3(deconv_layer2))
         return deconv_layer3
 
+#    Infer without batch normalization cannot improve image quality
+#    def infer(self, prior):
+#        prior = prior.cuda()
+#        fc_layer = leaky_relu(self.linear1(prior).view(-1, 512, 4, 4), negative_slope = 0.2)
+#        deconv_layer1 = leaky_relu(self.deconv1(fc_layer), negative_slope = 0.2)
+#        deconv_layer2 = leaky_relu(self.deconv2(deconv_layer1), negative_slope = 0.2)
+#        deconv_layer3 = tanh(self.deconv3(deconv_layer2))
+#        return deconv_layer3
+        
 class DCDiscriminator(torch.nn.Module):
     def __init__(self):
         super(DCDiscriminator, self).__init__()
@@ -127,7 +136,7 @@ if __name__ == "__main__":
     optimizer_g = torch.optim.RMSprop( dcg.parameters(), lr = 5e-4)
     optimizer_d = torch.optim.RMSprop( dcd.parameters(), lr = 5e-4)
     
-    for epoch in range(10):
+    for epoch in range(20):
         dataloader = DataLoader(d, batch_size=BATCH_SIZE, shuffle=True, num_workers=4, pin_memory =True)
         for batch in dataloader:
 
@@ -140,7 +149,7 @@ if __name__ == "__main__":
             #loss2 = nn.functional.binary_cross_entropy(dis_fake, Variable(torch.zeros(dis_fake.size()).cuda()) )
             #loss3 = nn.functional.binary_cross_entropy(dis_real, Variable(torch.ones(dis_fake.size() ).cuda()) )
             loss_d = - dis_real.mean() + dis_fake.mean()
-            loss_d.backward(retain_variables=True)
+            loss_d.backward(retain_graph=True)
             optimizer_d.step()
 
             for param in dcd.parameters():
