@@ -22,7 +22,7 @@ class DataReader(object):
         self.test = self.all_files[-training_size:]
         self.train_size = len(self.train)
         self.test_size = len(self.test)
-        self.blank_idx = len(self.mapping) 
+        self.blank_idx = len(self.mapping) + 1
 
     def get_iter(self, padding_size, batch_size = 100):
         random.shuffle(self.train)
@@ -44,7 +44,7 @@ class DataReader(object):
                 # suitable for variational label length
                 #print(os.path.basename(fns[0]).split(".")[0])
 
-                label_idx = map(lambda x: map(lambda y: self.mapping.index(y)
+                label_idx = map(lambda x: map(lambda y: self.mapping.index(y) + 1
                                 ,os.path.basename(x).split(".")[0]), fns)
 
                 label_idx_padded = map(lambda y: np.pad(y, (0, \
@@ -100,7 +100,7 @@ class DataReader(object):
         for line in dense_labels:
             # filter out blank index
             l = filter(lambda x : x != self.blank_idx, line)
-            l = "".join(map(lambda x: self.mapping[x], l))
+            l = "".join(map(lambda x: self.mapping[x-1], l))
             ret.append(l)
         return ret
         
@@ -230,29 +230,6 @@ class Captcha(object):
             cnt = 0
         
             for img, label, seq_len in self.datasrc.get_iter(16, self.config.batch_size):
-                #print(img.shape)
-                #print(label[0].shape, label[1].shape, label[2].shape)
-                #print(seq_len.shape)
-                #print(tf.SparseTensorValue(*label))
-
-                #data = s.run(self.assert_ops, feed_dict = { \
-                #    self.input : img,
-                #    self.output : tf.SparseTensorValue(*label),
-                #    self.seq_len : seq_len,
-                #    self.keep_prob : 1.0,
-                #})
-
-                #print(data)
-                #sys.exit()
-                #loss, data, summary = s.run([self.loss, self.tmp, merged_summary], feed_dict = { \
-                #    self.input : img,
-                #    self.output : tf.SparseTensorValue(*label),
-                #    self.seq_len : [self.config.split_num]*self.config.batch_size,
-                #    self.keep_prob : 1.0,
-                #})
-                #print(loss)
-                #print(np.max(np.abs(data)))
-                #sys.exit()
 
                 loss, _, summary = s.run([self.loss, optimizer, merged_summary], feed_dict = { \
                     self.input : img,
@@ -269,7 +246,7 @@ class Captcha(object):
                 cnt += 1
                 cnt_total += 1
 
-            if epoch % 5 == 4:
+            if epoch % self.config.nsave == self.config.nsave - 1:
                 self.saver.save(s, "./log/model_epoch_%d.ckpt" %(epoch + 1))
         print("")
 
@@ -309,22 +286,30 @@ if __name__ == "__main__":
 
     #sys.exit()
 
+    # Training 
+
     Config = namedtuple("NeuralNetworkConfig", "batch_size, input_h, input_w, rnn_hidden, output_dim, " \
                                                "output_len, learning_rate, num_layer, epoch_num, split_num, " \
+                                               "nsave, " \
     )
+
     conf = Config(batch_size = 100, input_h = 32, input_w = 128, rnn_hidden = 320, \
-                  output_len = 6, output_dim = 62, learning_rate = 1e-3, num_layer = 1, \
-                  epoch_num = 10, split_num = 16 \
+                  output_len = 6, output_dim = 63, learning_rate = 1e-3, num_layer = 1, \
+                  epoch_num = 10, split_num = 16, nsave = 5 \
                  )
 
     captcha = Captcha(dr, conf)
     #captcha.train()
 
+    # sys.exit()
+
+    # Testing 
+
     cnt_right = 0 
     cnt_total = 0
 
     for img, labels in dr.get_test(100):
-        target, prob = captcha.predict(img, "./log/model_epoch_5.ckpt")
+        target, prob = captcha.predict(img, "./log/model_epoch_10.ckpt")
         #print(target)
         tgt = dr.dense_to_labels(target)
         for i, (a,b) in enumerate(zip(tgt, labels)):
@@ -334,7 +319,7 @@ if __name__ == "__main__":
             else:
                 print(target[i])
                 print(a,b)
-                plt.imshow(img[i,:,:,:])
-                plt.show()
-                sys.exit()
+            #    plt.imshow(img[i,:,:,:])
+            #    plt.show()
+            #    sys.exit()
     print("Final accuracy: %.3f" %(cnt_right/float(cnt_total)))
