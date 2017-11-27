@@ -32,8 +32,6 @@ class DataProcess(object):
         self.src_dir = src_dir
         self.label_batch, self.img_batch = self._process()
     def _process(self):
-        # Following code is according to:
-        # https://stackoverflow.com/questions/33849617/how-do-i-convert-a-directory-of-jpeg-images-to-tfrecords-file-in-tensorflow
         
         def img_process(fn):
             img = tf.image.decode_image(tf.read_file(fn))
