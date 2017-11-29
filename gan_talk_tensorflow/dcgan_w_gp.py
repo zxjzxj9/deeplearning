@@ -190,6 +190,9 @@ class GANModel(object):
         self.sess = None
         self.saver = tf.train.Saver()
     def train(self, model_path = None):
+        self.sess = tf.Session()
+        temp = set(tf.global_variables())
+
         fake_result = self.discriminator.fake_judge
         real_result = self.discriminator.real_judge
         fake_rate = tf.reduce_mean(tf.cast(tf.nn.sigmoid(fake_result) > 0.5, tf.float32))
@@ -211,7 +214,7 @@ class GANModel(object):
         optim_d = tf.train.AdamOptimizer(tf.app.flags.FLAGS.learning_rate, beta1 = 0.0, beta2 = 0.5).minimize(loss_d, var_list =\
                                                              tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='discriminator'))
 
-        self.sess = tf.Session()
+
         writer = tf.summary.FileWriter(tf.app.flags.FLAGS.log_dir, self.sess.graph)
         summary_g = tf.summary.scalar(name="generator_loss", tensor=loss_g)
         summary_d = tf.summary.scalar(name="discriminator_loss", tensor=loss_d)
@@ -220,8 +223,10 @@ class GANModel(object):
 
         if model_path:
             self.saver.restore(self.sess, model_path)
-            
-        self.sess.run(tf.global_variables_initializer())
+            self.sess.run(tf.variables_initializer(set(tf.global_variables()) - temp))
+        else:
+            self.sess.run(tf.global_variables_initializer())
+
         self.sess.run(tf.local_variables_initializer())
         
         cnt_total = 0
