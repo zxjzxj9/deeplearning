@@ -146,25 +146,25 @@ class Discriminator(object):
             
             print(self.is_training)
             conv1 = tf.contrib.layers.convolution2d(inputs=input_img, num_outputs=128, padding="SAME",
-                                                    kernel_size=(5,5), stride=(2,2), activation_fn=tf.nn.leaky_relu, scope = "conv1")
-            #conv1 = tf.contrib.layers.batch_norm(inputs=conv1, center=True, scale=True, activation_fn=tf.nn.leaky_relu, 
-            #                                 is_training= self.is_training, scope="bn1")
+                                                    kernel_size=(5,5), stride=(2,2), activation_fn=tf.nn.relu, scope = "conv1")
+            #conv1 = tf.contrib.layers.layer_norm(inputs=conv1, center=True, scale=True, activation_fn=tf.nn.leaky_relu, 
+            #                                   scope="bn1")
             print(conv1.shape)
             conv2 = tf.contrib.layers.convolution2d(inputs=conv1, num_outputs=256, padding="SAME",
-                                                    kernel_size=(5,5), stride=(2,2), activation_fn=None, scope = "conv2")
-            #conv2 = tf.contrib.layers.batch_norm(inputs=conv2, center=True, scale=True, activation_fn=tf.nn.leaky_relu, 
-            #                                 is_training= self.is_training, scope="bn2")
+                                                    kernel_size=(5,5), stride=(2,2), activation_fn=tf.nn.relu, scope = "conv2")
+            #conv2 = tf.contrib.layers.layer_norm(inputs=conv2, center=True, scale=True, activation_fn=tf.nn.leaky_relu, 
+            #                                   scope="bn2")
             print(conv2.shape)
             ###
             conv3 = tf.contrib.layers.convolution2d(inputs=conv2, num_outputs=512, padding="SAME",
-                                                    kernel_size=(5,5), stride=(2,2), activation_fn=None, scope = "conv3")
-            #conv3 = tf.contrib.layers.batch_norm(inputs=conv3, center=True, scale=True, activation_fn=tf.nn.leaky_relu, 
-            #                                 is_training= self.is_training, scope="bn3")
+                                                    kernel_size=(5,5), stride=(2,2), activation_fn=tf.nn.relu, scope = "conv3")
+            #conv3 = tf.contrib.layers.layer_norm(inputs=conv3, center=True, scale=True, activation_fn=tf.nn.leaky_relu, 
+            #                                   scope="bn3")
             print(conv3.shape)
             conv4 = tf.contrib.layers.convolution2d(inputs=conv3, num_outputs=1024, padding="SAME",
-                                                    kernel_size=(5,5), stride=(2,2), activation_fn=None, scope = "conv4")
-            #conv4 = tf.contrib.layers.batch_norm(inputs=conv4, center=True, scale=True, activation_fn=tf.nn.leaky_relu, 
-            #                                 is_training= self.is_training, scope="bn4")
+                                                    kernel_size=(5,5), stride=(2,2), activation_fn=tf.nn.relu, scope = "conv4")
+            #conv4 = tf.contrib.layers.layer_norm(inputs=conv4, center=True, scale=True, activation_fn=tf.nn.leaky_relu, 
+            #                                   scope="bn4")
             print(conv4.shape)
             ###
             #conv5 = tf.contrib.layers.avg_pool2d(inputs=conv4, kernel_size=(4,4), stride=(4,4), padding="SAME", scope="avg_pool5")
@@ -195,7 +195,8 @@ class GANModel(object):
 
         fake_result = self.discriminator.fake_judge
         real_result = self.discriminator.real_judge
-        fake_rate = tf.reduce_mean(tf.cast(tf.nn.sigmoid(fake_result) > 0.5, tf.float32))
+        
+        #fake_rate = tf.reduce_mean(tf.cast(tf.nn.sigmoid(fake_result) > 0.5, tf.float32))
 
         epsilon = tf.placeholder(tf.float32, (None,1,1,1), "uniform_random")
         mixing = self.generator.gen_img + epsilon*(self.discriminator.real_img - self.generator.gen_img)
@@ -218,7 +219,7 @@ class GANModel(object):
         writer = tf.summary.FileWriter(tf.app.flags.FLAGS.log_dir, self.sess.graph)
         summary_g = tf.summary.scalar(name="generator_loss", tensor=loss_g)
         summary_d = tf.summary.scalar(name="discriminator_loss", tensor=loss_d)
-        summary_fake_rate = tf.summary.scalar(name="fake_rate", tensor=fake_rate)
+        #summary_fake_rate = tf.summary.scalar(name="fake_rate", tensor=fake_rate)
         
 
         if model_path:
@@ -265,20 +266,21 @@ class GANModel(object):
                                                                           self.generator.is_training: True,
                                                                     })
                 # Then evaluate the fake ratio
-                fake_rate_out, summary_fake_rate_out = self.sess.run([fake_rate, summary_fake_rate],
-                                                                        feed_dict = {
-                                                                            self.generator.prior: \
-                                                                                np.random.randn(tf.app.flags.FLAGS.batch_size, 100)* tf.app.flags.FLAGS.prior_scaling,
-                                                                            self.discriminator.is_training: False,
-                                                                            self.generator.is_training: False,
-                                                                        })
+                #fake_rate_out, summary_fake_rate_out = self.sess.run([fake_rate, summary_fake_rate],
+                #                                                        feed_dict = {
+                #                                                            self.generator.prior: \
+                #                                                                np.random.randn(tf.app.flags.FLAGS.batch_size, 100)* tf.app.flags.FLAGS.prior_scaling,
+                #                                                            self.discriminator.is_training: False,
+                #                                                            self.generator.is_training: False,
+                #                                                        })
+
                 cnt_total += 1       
                 writer.add_summary(summary_d_out, cnt_total)
                 writer.add_summary(summary_g_out, cnt_total)
-                writer.add_summary(summary_fake_rate_out, cnt_total)
+                #writer.add_summary(summary_fake_rate_out, cnt_total)
                 
-                print("In batch %3d, Dicriminator Loss %.3f, Generator Loss %.3f, Fake Ratio %.3f\r" \
-                      %(cnt_total, loss_d_out, loss_g_out, fake_rate_out), end="")
+                print("In batch %3d, Dicriminator Loss %.3f, Generator Loss %.3f\r" \
+                      %(cnt_total, loss_d_out, loss_g_out), end="")
                 # Save every 100 batches
                 if cnt_total % 50 == 0:
                     self.saver.save(self.sess, os.path.join(tf.app.flags.FLAGS.log_dir, "model_%03d.ckpt" %(cnt_total//50)))
