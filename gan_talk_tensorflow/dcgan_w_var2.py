@@ -197,8 +197,10 @@ class GANModel(object):
         #loss_d = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=real_result, labels = tf.random_uniform(tf.shape(real_result), minval = 0.9, maxval = 1.1)))\
         #       + tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=fake_result, labels = tf.random_uniform(tf.shape(fake_result), minval = 0.0, maxval = 0.1)))
 
-        loss_g = -tf.reduce_mean(fake_result)
-        loss_d = -tf.reduce_mean(real_result) + tf.reduce_mean(fake_result)
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        with tf.control_dependencies(update_ops):
+            loss_g = -tf.reduce_mean(fake_result)
+            loss_d = -tf.reduce_mean(real_result) + tf.reduce_mean(fake_result)
 
         optim_g = tf.train.RMSPropOptimizer(tf.app.flags.FLAGS.learning_rate).minimize(loss_g, var_list =\
                                                              tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='generator'))
@@ -228,33 +230,36 @@ class GANModel(object):
                 # sys.exit()
 
                 loss_d_out, _, summary_d_out = self.sess.run([loss_d, optim_d, summary_d], 
-                                                                 feed_dict = {
-                                                                      self.discriminator.real_img: imgs,
-                                                                      self.generator.prior: \
-                                                                           np.random.randn(tf.app.flags.FLAGS.batch_size, 100)* tf.app.flags.FLAGS.prior_scaling,
-                                                                      self.discriminator.is_training: True,
-                                                                      self.generator.is_training: True
-                                                                })
+                    feed_dict = {
+                        self.discriminator.real_img: imgs,
+                        self.generator.prior: \
+                            np.random.randn(tf.app.flags.FLAGS.batch_size, 100)* tf.app.flags.FLAGS.prior_scaling,
+                        self.discriminator.is_training: True,
+                        self.generator.is_training: True
+                })
                 
                 self.sess.run([var.assign(tf.clip_by_value(var, -1e-2, 1e-2)) for var in tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='discriminator')])
 
                 #if cnt_total % 5 == 0:
                 # Then train generator
                 loss_g_out, _, summary_g_out = self.sess.run([loss_g, optim_g, summary_g], 
-                                                                     feed_dict = {
-                                                                          self.generator.prior: \
-                                                                               np.random.randn(tf.app.flags.FLAGS.batch_size, 100)* tf.app.flags.FLAGS.prior_scaling,
-                                                                          self.discriminator.is_training: True,
-                                                                          self.generator.is_training: True,
-                                                                    })
+                    feed_dict = {
+                        self.discriminator.real_img: imgs,
+                        self.generator.prior: \
+                            np.random.randn(tf.app.flags.FLAGS.batch_size, 100)* tf.app.flags.FLAGS.prior_scaling,
+                        self.discriminator.is_training: True,
+                        self.generator.is_training: True,
+                })
+
                 # Then evaluate the fake ratio
                 fake_rate_out, summary_fake_rate_out = self.sess.run([fake_rate, summary_fake_rate],
-                                                                        feed_dict = {
-                                                                            self.generator.prior: \
-                                                                                np.random.randn(tf.app.flags.FLAGS.batch_size, 100)* tf.app.flags.FLAGS.prior_scaling,
-                                                                            self.discriminator.is_training: False,
-                                                                            self.generator.is_training: False,
-                                                                        })
+                    feed_dict = {
+                        self.generator.prior: \
+                            np.random.randn(tf.app.flags.FLAGS.batch_size, 100)* tf.app.flags.FLAGS.prior_scaling,
+                        self.discriminator.is_training: False,
+                        self.generator.is_training: False,
+                })
+
                 cnt_total += 1       
                 writer.add_summary(summary_d_out, cnt_total)
                 writer.add_summary(summary_g_out, cnt_total)

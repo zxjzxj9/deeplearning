@@ -207,8 +207,10 @@ class GANModel(object):
         #print(tf.app.flags.FLAGS.penalty_factor)
         #sys.exit()
 
-        loss_g = -tf.reduce_mean(fake_result)
-        loss_d = -tf.reduce_mean(real_result) + tf.reduce_mean(fake_result) + tf.app.flags.FLAGS.penalty_factor*penalty
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        with tf.control_dependencies(update_ops):
+            loss_g = -tf.reduce_mean(fake_result)
+            loss_d = -tf.reduce_mean(real_result) + tf.reduce_mean(fake_result) + tf.app.flags.FLAGS.penalty_factor*penalty
 
         optim_g = tf.train.AdamOptimizer(tf.app.flags.FLAGS.learning_rate, beta1 = 0.0, beta2 = 0.5).minimize(loss_g, var_list =\
                                                              tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='generator'))
@@ -260,6 +262,7 @@ class GANModel(object):
                 # Then train generator
                 loss_g_out, _, summary_g_out = self.sess.run([loss_g, optim_g, summary_g], 
                                                                      feed_dict = {
+                                                                          self.discriminator.real_img: imgs,
                                                                           self.generator.prior: \
                                                                                np.random.randn(imgs.shape[0], 100)* tf.app.flags.FLAGS.prior_scaling,
                                                                           self.discriminator.is_training: True,

@@ -10,19 +10,19 @@ import os
 
 from tensorflow.python.platform import flags
 import argparse
-tf.app.flags.FLAGS = flags._FlagValues()
-tf.app.flags._global_parser = argparse.ArgumentParser()
-tf.app.flags.DEFINE_integer(flag_name="epochs", docstring="number of training epoches", default_value=1000)
-tf.app.flags.DEFINE_integer(flag_name="crop_height", docstring="image cropping height", default_value=500)
-tf.app.flags.DEFINE_integer(flag_name="crop_width", docstring="image cropping width", default_value=500)
-tf.app.flags.DEFINE_integer(flag_name="target_height", docstring="image resize height", default_value=64)
-tf.app.flags.DEFINE_integer(flag_name="target_width", docstring="image resize width", default_value=64)
-tf.app.flags.DEFINE_integer(flag_name="batch_size", docstring="image batchsize", default_value=128)
-tf.app.flags.DEFINE_float(flag_name="learning_rate", docstring="learning rate", default_value=2e-4)
-tf.app.flags.DEFINE_float(flag_name="prior_scaling", docstring="scale of prior", default_value=1e0)
-tf.app.flags.DEFINE_boolean(flag_name="is_training", docstring="whether the model is at training stage", default_value=True)
-tf.app.flags.DEFINE_string(flag_name="log_dir", docstring="The log directory", default_value="./log")
-tf.app.flags.DEFINE_string(flag_name="visible_gpu", docstring="which gpu is visible", default_value="0")
+#tf.app.flags.FLAGS = flags._FlagValues()
+#tf.app.flags._global_parser = argparse.ArgumentParser()
+tf.app.flags.DEFINE_integer(name="epochs", help="number of training epoches", default=1000)
+tf.app.flags.DEFINE_integer(name="crop_height", help="image cropping height", default=500)
+tf.app.flags.DEFINE_integer(name="crop_width", help="image cropping width", default=500)
+tf.app.flags.DEFINE_integer(name="target_height", help="image resize height", default=64)
+tf.app.flags.DEFINE_integer(name="target_width", help="image resize width", default=64)
+tf.app.flags.DEFINE_integer(name="batch_size", help="image batchsize", default=128)
+tf.app.flags.DEFINE_float(name="learning_rate", help="learning rate", default=2e-4)
+tf.app.flags.DEFINE_float(name="prior_scaling", help="scale of prior", default=1e0)
+tf.app.flags.DEFINE_boolean(name="is_training", help="whether the model is at training stage", default=True)
+tf.app.flags.DEFINE_string(name="log_dir", help="The log directory", default="./log")
+tf.app.flags.DEFINE_string(name="visible_gpu", help="which gpu is visible", default="0")
 
 
 os.environ["CUDA_VISIBLE_DEVICES"]=tf.app.flags.FLAGS.visible_gpu
@@ -43,7 +43,7 @@ class DataProcess(object):
         filenames = tf.constant(glob.glob(os.path.join(self.src_dir,"*")))
         dataset = tf.data.Dataset.from_tensor_slices((filenames, ))
         dataset = dataset.map(img_process)
-        dataset = dataset.shuffle(buffer_size=10000)
+        dataset = dataset.shuffle(buffer_size=1000)
         dataset = dataset.batch(tf.app.flags.FLAGS.batch_size)
         dataset = dataset.repeat(tf.app.flags.FLAGS.epochs)
 
@@ -201,10 +201,16 @@ class GANModel(object):
         loss_d = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=real_result , labels = tf.ones_like(real_result)))\
                + tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits=fake_result , labels = tf.zeros_like(fake_result)))
 
-        optim_g = tf.train.AdamOptimizer(tf.app.flags.FLAGS.learning_rate, beta1=0.5).minimize(loss_g, var_list =\
-                                                             tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='generator'))
-        optim_d = tf.train.AdamOptimizer(tf.app.flags.FLAGS.learning_rate, beta1=0.5).minimize(loss_d, var_list =\
-                                                             tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='discriminator'))
+
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
+        #update_ops = [k for k in update_ops1 if k.name.startswith("discriminator")]
+
+        with tf.control_dependencies(update_ops):
+            optim_g = tf.train.AdamOptimizer(tf.app.flags.FLAGS.learning_rate, beta1=0.5).minimize(loss_g, var_list =\
+                                                                 tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='generator'))
+            optim_d = tf.train.AdamOptimizer(tf.app.flags.FLAGS.learning_rate, beta1=0.5).minimize(loss_d, var_list =\
+                                                                 tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='discriminator'))
+
         writer = tf.summary.FileWriter(tf.app.flags.FLAGS.log_dir, self.sess.graph)
         summary_g = tf.summary.scalar(name="generator_loss", tensor=loss_g)
         summary_d = tf.summary.scalar(name="discriminator_loss", tensor=loss_d)
@@ -222,13 +228,15 @@ class GANModel(object):
         try:
             while True:
                 labels, imgs = self.sess.run(self.datasrc.get_data(), feed_dict = {})
+                # print(imgs.dtype)
+                # print(imgs.shape)
                 # First train discriminator
                 # print(self.discriminator.is_training)
                 # print(self.generator.is_training)
                 # print(np.max(imgs/255.0*2 - 1.0), np.min(imgs/255.0*2 - 1.0))
                 # sys.exit()
 
-                loss_d_out, _, summary_d_out = self.sess.run([loss_d, optim_d, summary_d], 
+                loss_d_out, summary_d_out, _ = self.sess.run([loss_d, summary_d, optim_d], 
                                                                  feed_dict = {
                                                                       self.discriminator.real_img: imgs,
                                                                       self.generator.prior: \
@@ -237,8 +245,9 @@ class GANModel(object):
                                                                       self.generator.is_training: True
                                                                 })
                 # Then train generator
-                loss_g_out, _, summary_g_out = self.sess.run([loss_g, optim_g, summary_g], 
+                loss_g_out, summary_g_out, _ = self.sess.run([loss_g, summary_g, optim_g], 
                                                                  feed_dict = {
+                                                                      self.discriminator.real_img: imgs,
                                                                       self.generator.prior: \
                                                                            np.random.randn(tf.app.flags.FLAGS.batch_size, 100)* tf.app.flags.FLAGS.prior_scaling,
                                                                       self.discriminator.is_training: True,
